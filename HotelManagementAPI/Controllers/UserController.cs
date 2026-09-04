@@ -27,13 +27,16 @@ namespace HotelManagementAPI.Controllers
             _configuration = configuration;
         }
 
-        // REGISTER
+        // Kullanıcı kayıt olma
         [HttpPost("register")]
         public IActionResult Register(User user)
         {
-            if (_context.Users.Any(x => x.Email == user.Email && !x.IsDeleted))
+            if (_context.Users.Any(x =>
+                x.Email == user.Email &&
+                !x.IsDeleted))
             {
-                return BadRequest("Bu e-posta adresi zaten kayıtlı.");
+                return BadRequest(
+                    "Bu e-posta adresi zaten kayıtlı.");
             }
 
             user.Id = Guid.NewGuid();
@@ -46,10 +49,11 @@ namespace HotelManagementAPI.Controllers
             _context.Users.Add(user);
             _context.SaveChanges();
 
-            return Ok("Kullanıcı başarıyla oluşturuldu.");
+            return Ok(
+                "Kullanıcı başarıyla oluşturuldu.");
         }
 
-        // LOGIN
+        // Kullanıcı giriş yapma
         [HttpPost("login")]
         public IActionResult Login(LoginRequest loginRequest)
         {
@@ -60,29 +64,38 @@ namespace HotelManagementAPI.Controllers
 
             if (user == null)
             {
-                return Unauthorized("E-posta veya şifre hatalı.");
+                return Unauthorized(
+                    "E-posta veya şifre hatalı.");
             }
 
-            var passwordResult = _passwordHasher.VerifyHashedPassword(
-                user,
-                user.Password,
-                loginRequest.Password);
+            var passwordResult =
+                _passwordHasher.VerifyHashedPassword(
+                    user,
+                    user.Password,
+                    loginRequest.Password);
 
-            if (passwordResult == PasswordVerificationResult.Failed)
+            if (passwordResult ==
+                PasswordVerificationResult.Failed)
             {
-                return Unauthorized("E-posta veya şifre hatalı.");
+                return Unauthorized(
+                    "E-posta veya şifre hatalı.");
             }
 
-            // JWT için kullanıcı bilgileri
             var claims = new[]
             {
-                new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-                new Claim(ClaimTypes.Email, user.Email),
-                new Claim(ClaimTypes.Name,
+                new Claim(
+                    ClaimTypes.NameIdentifier,
+                    user.Id.ToString()),
+
+                new Claim(
+                    ClaimTypes.Email,
+                    user.Email),
+
+                new Claim(
+                    ClaimTypes.Name,
                     $"{user.FirstName} {user.LastName}")
             };
 
-            // JWT gizli anahtarı
             var key = new SymmetricSecurityKey(
                 Encoding.UTF8.GetBytes(
                     _configuration["Jwt:Key"]!));
@@ -91,7 +104,6 @@ namespace HotelManagementAPI.Controllers
                 key,
                 SecurityAlgorithms.HmacSha256);
 
-            // Token oluştur
             var token = new JwtSecurityToken(
                 issuer: _configuration["Jwt:Issuer"],
                 audience: _configuration["Jwt:Audience"],
@@ -101,13 +113,57 @@ namespace HotelManagementAPI.Controllers
                         _configuration["Jwt:ExpireMinutes"]!)),
                 signingCredentials: credentials);
 
-            var tokenString = new JwtSecurityTokenHandler()
-                .WriteToken(token);
+            var tokenString =
+                new JwtSecurityTokenHandler()
+                    .WriteToken(token);
 
             return Ok(new
             {
                 message = "Giriş başarılı.",
                 token = tokenString
+            });
+        }
+
+        // Kullanıcı bilgilerini güncelleme
+        [HttpPut("update")]
+        [Microsoft.AspNetCore.Authorization.Authorize]
+        public IActionResult UpdateUser(User updatedUser)
+        {
+            var userId =
+                User.FindFirst(
+                    ClaimTypes.NameIdentifier)?.Value;
+
+            if (userId == null)
+            {
+                return Unauthorized();
+            }
+
+            var user = _context.Users
+                .FirstOrDefault(x =>
+                    x.Id == Guid.Parse(userId) &&
+                    !x.IsDeleted);
+
+            if (user == null)
+            {
+                return NotFound(
+                    "Kullanıcı bulunamadı.");
+            }
+
+            user.FirstName = updatedUser.FirstName;
+            user.LastName = updatedUser.LastName;
+            user.Email = updatedUser.Email;
+
+            _context.SaveChanges();
+
+            return Ok(new
+            {
+                message =
+                    "Kullanıcı bilgileri başarıyla güncellendi.",
+
+                user.Id,
+                user.FirstName,
+                user.LastName,
+                user.Email
             });
         }
     }
