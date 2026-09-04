@@ -27,7 +27,6 @@ namespace HotelManagementAPI.Controllers
             _configuration = configuration;
         }
 
-        // Kullanıcı kayıt olma
         [HttpPost("register")]
         public IActionResult Register(User user)
         {
@@ -53,7 +52,6 @@ namespace HotelManagementAPI.Controllers
                 "Kullanıcı başarıyla oluşturuldu.");
         }
 
-        // Kullanıcı giriş yapma
         [HttpPost("login")]
         public IActionResult Login(LoginRequest loginRequest)
         {
@@ -124,7 +122,40 @@ namespace HotelManagementAPI.Controllers
             });
         }
 
-        // Kullanıcı bilgilerini güncelleme
+        [HttpGet("profile")]
+        [Microsoft.AspNetCore.Authorization.Authorize]
+        public IActionResult GetProfile()
+        {
+            var userId =
+                User.FindFirst(
+                    ClaimTypes.NameIdentifier)?.Value;
+
+            if (userId == null)
+            {
+                return Unauthorized();
+            }
+
+            var user = _context.Users
+                .FirstOrDefault(x =>
+                    x.Id == Guid.Parse(userId) &&
+                    !x.IsDeleted);
+
+            if (user == null)
+            {
+                return NotFound(
+                    "Kullanıcı bulunamadı.");
+            }
+
+            return Ok(new
+            {
+                user.Id,
+                user.FirstName,
+                user.LastName,
+                user.Email,
+                user.Balance
+            });
+        }
+
         [HttpPut("update")]
         [Microsoft.AspNetCore.Authorization.Authorize]
         public IActionResult UpdateUser(User updatedUser)

@@ -29,6 +29,10 @@ namespace HotelManagementAPI.Data
                 .Property(x => x.PricePerNight)
                 .HasPrecision(18, 2);
 
+            modelBuilder.Entity<User>()
+                .Property(x => x.Balance)
+                .HasPrecision(18, 2);
+
             modelBuilder.Entity<Reservation>()
                 .Property(x => x.TotalPrice)
                 .HasPrecision(18, 2);
