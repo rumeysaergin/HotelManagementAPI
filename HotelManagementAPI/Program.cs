@@ -1,4 +1,5 @@
 using HotelManagementAPI.Data;
+using HotelManagementAPI.Mappings;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -22,6 +23,9 @@ builder.Host.UseSerilog();
 builder.Services.AddDbContext<HotelManagementDbContext>(options =>
     options.UseSqlServer(
         builder.Configuration.GetConnectionString("DefaultConnection")));
+
+// AutoMapper
+builder.Services.AddAutoMapper(typeof(MappingProfile));
 
 // JWT Authentication
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)

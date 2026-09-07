@@ -1,5 +1,7 @@
-﻿using HotelManagementAPI.Data;
+﻿using AutoMapper;
+using HotelManagementAPI.Data;
 using HotelManagementAPI.Entities;
+using HotelManagementAPI.Models.DTOs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
@@ -12,10 +14,14 @@ namespace HotelManagementAPI.Controllers
     public class PaymentController : ControllerBase
     {
         private readonly HotelManagementDbContext _context;
+        private readonly IMapper _mapper;
 
-        public PaymentController(HotelManagementDbContext context)
+        public PaymentController(
+            HotelManagementDbContext context,
+            IMapper mapper)
         {
             _context = context;
+            _mapper = mapper;
         }
 
         [HttpPost("{reservationId}")]
@@ -90,15 +96,13 @@ namespace HotelManagementAPI.Controllers
             _context.Payments.Add(payment);
             _context.SaveChanges();
 
+            var paymentDto = _mapper.Map<PaymentDto>(payment);
+
             return Ok(new
             {
                 message = "Ödeme başarıyla gerçekleştirildi.",
-                reservationId = reservation.Id,
-                amount = payment.Amount,
-                remainingBalance = user.Balance,
-                paymentType = payment.PaymentType,
-                status = payment.Status,
-                transactionDate = payment.TransactionDate
+                payment = paymentDto,
+                remainingBalance = user.Balance
             });
         }
 
@@ -121,7 +125,10 @@ namespace HotelManagementAPI.Controllers
                         !r.IsDeleted))
                 .ToList();
 
-            return Ok(payments);
+            var paymentDtos =
+                _mapper.Map<List<PaymentDto>>(payments);
+
+            return Ok(paymentDtos);
         }
     }
 }

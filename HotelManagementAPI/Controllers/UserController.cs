@@ -1,6 +1,8 @@
-﻿using HotelManagementAPI.Data;
+﻿using AutoMapper;
+using HotelManagementAPI.Data;
 using HotelManagementAPI.Entities;
 using HotelManagementAPI.Models;
+using HotelManagementAPI.Models.DTOs;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
@@ -17,14 +19,17 @@ namespace HotelManagementAPI.Controllers
         private readonly HotelManagementDbContext _context;
         private readonly PasswordHasher<User> _passwordHasher;
         private readonly IConfiguration _configuration;
+        private readonly IMapper _mapper;
 
         public UserController(
             HotelManagementDbContext context,
-            IConfiguration configuration)
+            IConfiguration configuration,
+            IMapper mapper)
         {
             _context = context;
             _passwordHasher = new PasswordHasher<User>();
             _configuration = configuration;
+            _mapper = mapper;
         }
 
         [HttpPost("register")]
@@ -48,8 +53,13 @@ namespace HotelManagementAPI.Controllers
             _context.Users.Add(user);
             _context.SaveChanges();
 
-            return Ok(
-                "Kullanıcı başarıyla oluşturuldu.");
+            var userDto = _mapper.Map<UserDto>(user);
+
+            return Ok(new
+            {
+                message = "Kullanıcı başarıyla oluşturuldu.",
+                user = userDto
+            });
         }
 
         [HttpPost("login")]
@@ -146,14 +156,9 @@ namespace HotelManagementAPI.Controllers
                     "Kullanıcı bulunamadı.");
             }
 
-            return Ok(new
-            {
-                user.Id,
-                user.FirstName,
-                user.LastName,
-                user.Email,
-                user.Balance
-            });
+            var userDto = _mapper.Map<UserDto>(user);
+
+            return Ok(userDto);
         }
 
         [HttpPut("update")]
@@ -186,15 +191,13 @@ namespace HotelManagementAPI.Controllers
 
             _context.SaveChanges();
 
+            var userDto = _mapper.Map<UserDto>(user);
+
             return Ok(new
             {
                 message =
                     "Kullanıcı bilgileri başarıyla güncellendi.",
-
-                user.Id,
-                user.FirstName,
-                user.LastName,
-                user.Email
+                user = userDto
             });
         }
     }

@@ -1,5 +1,7 @@
-﻿using HotelManagementAPI.Data;
+﻿using AutoMapper;
+using HotelManagementAPI.Data;
 using HotelManagementAPI.Entities;
+using HotelManagementAPI.Models.DTOs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
@@ -12,10 +14,14 @@ namespace HotelManagementAPI.Controllers
     public class ReservationController : ControllerBase
     {
         private readonly HotelManagementDbContext _context;
+        private readonly IMapper _mapper;
 
-        public ReservationController(HotelManagementDbContext context)
+        public ReservationController(
+            HotelManagementDbContext context,
+            IMapper mapper)
         {
             _context = context;
+            _mapper = mapper;
         }
 
         [HttpGet]
@@ -34,11 +40,15 @@ namespace HotelManagementAPI.Controllers
                     !x.IsDeleted)
                 .ToList();
 
-            return Ok(reservations);
+            var reservationDtos =
+                _mapper.Map<List<ReservationDto>>(reservations);
+
+            return Ok(reservationDtos);
         }
 
         [HttpPost]
-        public IActionResult CreateReservation(Reservation reservation)
+        public IActionResult CreateReservation(
+            ReservationDto reservationDto)
         {
             var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
@@ -49,7 +59,7 @@ namespace HotelManagementAPI.Controllers
 
             var room = _context.Rooms
                 .FirstOrDefault(x =>
-                    x.Id == reservation.RoomId &&
+                    x.Id == reservationDto.RoomId &&
                     !x.IsDeleted);
 
             if (room == null)
@@ -57,24 +67,25 @@ namespace HotelManagementAPI.Controllers
                 return NotFound("Oda bulunamadı.");
             }
 
-            if (reservation.CheckInDate >= reservation.CheckOutDate)
+            if (reservationDto.CheckInDate >=
+                reservationDto.CheckOutDate)
             {
                 return BadRequest(
                     "Çıkış tarihi giriş tarihinden sonra olmalıdır.");
             }
 
-            if (reservation.CheckInDate.Date < DateTime.Today)
+            if (reservationDto.CheckInDate.Date < DateTime.Today)
             {
                 return BadRequest(
                     "Geçmiş bir tarih için rezervasyon yapılamaz.");
             }
 
             var hasConflict = _context.Reservations.Any(x =>
-                x.RoomId == reservation.RoomId &&
+                x.RoomId == reservationDto.RoomId &&
                 !x.IsDeleted &&
                 x.Status == "Active" &&
-                reservation.CheckInDate < x.CheckOutDate &&
-                reservation.CheckOutDate > x.CheckInDate);
+                reservationDto.CheckInDate < x.CheckOutDate &&
+                reservationDto.CheckOutDate > x.CheckInDate);
 
             if (hasConflict)
             {
@@ -83,8 +94,10 @@ namespace HotelManagementAPI.Controllers
             }
 
             var numberOfNights =
-                (reservation.CheckOutDate.Date -
-                 reservation.CheckInDate.Date).Days;
+                (reservationDto.CheckOutDate.Date -
+                 reservationDto.CheckInDate.Date).Days;
+
+            var reservation = _mapper.Map<Reservation>(reservationDto);
 
             reservation.TotalPrice =
                 numberOfNights * room.PricePerNight;
@@ -101,13 +114,16 @@ namespace HotelManagementAPI.Controllers
             _context.Reservations.Add(reservation);
             _context.SaveChanges();
 
-            return Ok(reservation);
+            var result =
+                _mapper.Map<ReservationDto>(reservation);
+
+            return Ok(result);
         }
 
         [HttpPut("{id}")]
         public IActionResult UpdateReservation(
             Guid id,
-            Reservation updatedReservation)
+            ReservationDto updatedReservationDto)
         {
             var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
@@ -144,7 +160,7 @@ namespace HotelManagementAPI.Controllers
 
             var newRoom = _context.Rooms
                 .FirstOrDefault(x =>
-                    x.Id == updatedReservation.RoomId &&
+                    x.Id == updatedReservationDto.RoomId &&
                     !x.IsDeleted);
 
             if (newRoom == null)
@@ -152,14 +168,15 @@ namespace HotelManagementAPI.Controllers
                 return NotFound("Oda bulunamadı.");
             }
 
-            if (updatedReservation.CheckInDate >=
-                updatedReservation.CheckOutDate)
+            if (updatedReservationDto.CheckInDate >=
+                updatedReservationDto.CheckOutDate)
             {
                 return BadRequest(
                     "Çıkış tarihi giriş tarihinden sonra olmalıdır.");
             }
 
-            if (updatedReservation.CheckInDate.Date < DateTime.Today)
+            if (updatedReservationDto.CheckInDate.Date <
+                DateTime.Today)
             {
                 return BadRequest(
                     "Geçmiş bir tarih için rezervasyon yapılamaz.");
@@ -167,11 +184,11 @@ namespace HotelManagementAPI.Controllers
 
             var hasConflict = _context.Reservations.Any(x =>
                 x.Id != id &&
-                x.RoomId == updatedReservation.RoomId &&
+                x.RoomId == updatedReservationDto.RoomId &&
                 !x.IsDeleted &&
                 x.Status == "Active" &&
-                updatedReservation.CheckInDate < x.CheckOutDate &&
-                updatedReservation.CheckOutDate > x.CheckInDate);
+                updatedReservationDto.CheckInDate < x.CheckOutDate &&
+                updatedReservationDto.CheckOutDate > x.CheckInDate);
 
             if (hasConflict)
             {
@@ -180,17 +197,15 @@ namespace HotelManagementAPI.Controllers
             }
 
             var numberOfNights =
-                (updatedReservation.CheckOutDate.Date -
-                 updatedReservation.CheckInDate.Date).Days;
+                (updatedReservationDto.CheckOutDate.Date -
+                 updatedReservationDto.CheckInDate.Date).Days;
 
             reservation.TotalPrice =
                 numberOfNights * newRoom.PricePerNight;
 
-            reservation.RoomId = updatedReservation.RoomId;
-            reservation.CheckInDate = updatedReservation.CheckInDate;
-            reservation.CheckOutDate = updatedReservation.CheckOutDate;
+            _mapper.Map(updatedReservationDto, reservation);
 
-            if (oldRoomId != updatedReservation.RoomId)
+            if (oldRoomId != updatedReservationDto.RoomId)
             {
                 var oldRoom = _context.Rooms
                     .FirstOrDefault(x =>
@@ -219,7 +234,10 @@ namespace HotelManagementAPI.Controllers
 
             _context.SaveChanges();
 
-            return Ok(reservation);
+            var result =
+                _mapper.Map<ReservationDto>(reservation);
+
+            return Ok(result);
         }
 
         [HttpPost("{id}/cancel")]
@@ -250,7 +268,8 @@ namespace HotelManagementAPI.Controllers
             }
 
             var daysUntilCheckIn =
-                (reservation.CheckInDate.Date - DateTime.Today).Days;
+                (reservation.CheckInDate.Date -
+                 DateTime.Today).Days;
 
             if (daysUntilCheckIn >= 2)
             {

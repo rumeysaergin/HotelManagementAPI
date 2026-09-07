@@ -1,5 +1,7 @@
-﻿using HotelManagementAPI.Data;
+﻿using AutoMapper;
+using HotelManagementAPI.Data;
 using HotelManagementAPI.Entities;
+using HotelManagementAPI.Models.DTOs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
@@ -12,10 +14,14 @@ namespace HotelManagementAPI.Controllers
     public class RoomController : ControllerBase
     {
         private readonly HotelManagementDbContext _context;
+        private readonly IMapper _mapper;
 
-        public RoomController(HotelManagementDbContext context)
+        public RoomController(
+            HotelManagementDbContext context,
+            IMapper mapper)
         {
             _context = context;
+            _mapper = mapper;
         }
 
         // GET: api/Room
@@ -26,12 +32,14 @@ namespace HotelManagementAPI.Controllers
                 .Where(x => !x.IsDeleted)
                 .ToList();
 
-            return Ok(rooms);
+            var roomDtos = _mapper.Map<List<RoomDto>>(rooms);
+
+            return Ok(roomDtos);
         }
 
         // POST: api/Room
         [HttpPost]
-        public IActionResult CreateRoom(Room room)
+        public IActionResult CreateRoom(RoomDto roomDto)
         {
             var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
@@ -42,7 +50,7 @@ namespace HotelManagementAPI.Controllers
 
             var hotel = _context.Hotels
                 .FirstOrDefault(x =>
-                    x.Id == room.HotelId &&
+                    x.Id == roomDto.HotelId &&
                     x.UserId == Guid.Parse(userId) &&
                     !x.IsDeleted);
 
@@ -52,6 +60,8 @@ namespace HotelManagementAPI.Controllers
                     "Belirtilen otel bulunamadı veya bu otel size ait değil.");
             }
 
+            var room = _mapper.Map<Room>(roomDto);
+
             room.Id = Guid.NewGuid();
             room.IsDeleted = false;
             room.IsAvailable = true;
@@ -59,12 +69,14 @@ namespace HotelManagementAPI.Controllers
             _context.Rooms.Add(room);
             _context.SaveChanges();
 
-            return Ok(room);
+            var result = _mapper.Map<RoomDto>(room);
+
+            return Ok(result);
         }
 
         // PUT: api/Room/{id}
         [HttpPut("{id}")]
-        public IActionResult UpdateRoom(Guid id, Room updatedRoom)
+        public IActionResult UpdateRoom(Guid id, RoomDto updatedRoomDto)
         {
             var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
@@ -93,15 +105,15 @@ namespace HotelManagementAPI.Controllers
                     "Bu odayı güncelleme yetkiniz yok.");
             }
 
-            room.RoomNumber = updatedRoom.RoomNumber;
-            room.RoomType = updatedRoom.RoomType;
-            room.Capacity = updatedRoom.Capacity;
-            room.PricePerNight = updatedRoom.PricePerNight;
+            _mapper.Map(updatedRoomDto, room);
 
             _context.SaveChanges();
 
-            return Ok(room);
+            var result = _mapper.Map<RoomDto>(room);
+
+            return Ok(result);
         }
+
         // DELETE: api/Room/{id}
         [HttpDelete("{id}")]
         public IActionResult DeleteRoom(Guid id)

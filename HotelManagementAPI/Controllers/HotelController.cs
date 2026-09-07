@@ -1,5 +1,7 @@
 ﻿using HotelManagementAPI.Data;
 using HotelManagementAPI.Entities;
+using HotelManagementAPI.Models.DTOs;
+using AutoMapper;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
@@ -12,10 +14,14 @@ namespace HotelManagementAPI.Controllers
     public class HotelController : ControllerBase
     {
         private readonly HotelManagementDbContext _context;
+        private readonly IMapper _mapper;
 
-        public HotelController(HotelManagementDbContext context)
+        public HotelController(
+            HotelManagementDbContext context,
+            IMapper mapper)
         {
             _context = context;
+            _mapper = mapper;
         }
 
         // GET: api/Hotel
@@ -35,12 +41,14 @@ namespace HotelManagementAPI.Controllers
                     !x.IsDeleted)
                 .ToList();
 
-            return Ok(hotels);
+            var hotelDtos = _mapper.Map<List<HotelDto>>(hotels);
+
+            return Ok(hotelDtos);
         }
 
         // POST: api/Hotel
         [HttpPost]
-        public IActionResult CreateHotel(Hotel hotel)
+        public IActionResult CreateHotel(HotelDto hotelDto)
         {
             var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
@@ -49,6 +57,8 @@ namespace HotelManagementAPI.Controllers
                 return Unauthorized();
             }
 
+            var hotel = _mapper.Map<Hotel>(hotelDto);
+
             hotel.Id = Guid.NewGuid();
             hotel.UserId = Guid.Parse(userId);
             hotel.IsDeleted = false;
@@ -56,12 +66,14 @@ namespace HotelManagementAPI.Controllers
             _context.Hotels.Add(hotel);
             _context.SaveChanges();
 
-            return Ok(hotel);
+            var result = _mapper.Map<HotelDto>(hotel);
+
+            return Ok(result);
         }
 
         // PUT: api/Hotel/{id}
         [HttpPut("{id}")]
-        public IActionResult UpdateHotel(Guid id, Hotel updatedHotel)
+        public IActionResult UpdateHotel(Guid id, HotelDto updatedHotelDto)
         {
             var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
@@ -87,13 +99,13 @@ namespace HotelManagementAPI.Controllers
                     "Bu oteli güncelleme yetkiniz yok.");
             }
 
-            hotel.Name = updatedHotel.Name;
-            hotel.Address = updatedHotel.Address;
-            hotel.City = updatedHotel.City;
+            _mapper.Map(updatedHotelDto, hotel);
 
             _context.SaveChanges();
 
-            return Ok(hotel);
+            var result = _mapper.Map<HotelDto>(hotel);
+
+            return Ok(result);
         }
 
         // DELETE: api/Hotel/{id}
