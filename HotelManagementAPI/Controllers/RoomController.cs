@@ -1,7 +1,5 @@
-﻿using AutoMapper;
-using HotelManagementAPI.Data;
-using HotelManagementAPI.Entities;
-using HotelManagementAPI.Models.DTOs;
+﻿using HotelManagementAPI.Application.DTOs;
+using HotelManagementAPI.Application.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
@@ -13,28 +11,20 @@ namespace HotelManagementAPI.Controllers
     [Authorize]
     public class RoomController : ControllerBase
     {
-        private readonly HotelManagementDbContext _context;
-        private readonly IMapper _mapper;
+        private readonly IRoomService _roomService;
 
-        public RoomController(
-            HotelManagementDbContext context,
-            IMapper mapper)
+        public RoomController(IRoomService roomService)
         {
-            _context = context;
-            _mapper = mapper;
+            _roomService = roomService;
         }
 
-        // GET: api/Room
+        // GET: api/Room?hotelId=...
         [HttpGet]
-        public IActionResult GetRooms()
+        public IActionResult GetRooms(Guid? hotelId)
         {
-            var rooms = _context.Rooms
-                .Where(x => !x.IsDeleted)
-                .ToList();
+            var rooms = _roomService.GetRooms(hotelId);
 
-            var roomDtos = _mapper.Map<List<RoomDto>>(rooms);
-
-            return Ok(roomDtos);
+            return Ok(rooms);
         }
 
         // POST: api/Room
@@ -48,35 +38,24 @@ namespace HotelManagementAPI.Controllers
                 return Unauthorized();
             }
 
-            var hotel = _context.Hotels
-                .FirstOrDefault(x =>
-                    x.Id == roomDto.HotelId &&
-                    x.UserId == Guid.Parse(userId) &&
-                    !x.IsDeleted);
+            var result = _roomService.CreateRoom(
+                Guid.Parse(userId),
+                roomDto);
 
-            if (hotel == null)
+            if (result == null)
             {
                 return NotFound(
                     "Belirtilen otel bulunamadı veya bu otel size ait değil.");
             }
-
-            var room = _mapper.Map<Room>(roomDto);
-
-            room.Id = Guid.NewGuid();
-            room.IsDeleted = false;
-            room.IsAvailable = true;
-
-            _context.Rooms.Add(room);
-            _context.SaveChanges();
-
-            var result = _mapper.Map<RoomDto>(room);
 
             return Ok(result);
         }
 
         // PUT: api/Room/{id}
         [HttpPut("{id}")]
-        public IActionResult UpdateRoom(Guid id, RoomDto updatedRoomDto)
+        public IActionResult UpdateRoom(
+            Guid id,
+            RoomDto updatedRoomDto)
         {
             var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
@@ -85,33 +64,24 @@ namespace HotelManagementAPI.Controllers
                 return Unauthorized();
             }
 
-            var room = _context.Rooms
-                .FirstOrDefault(x => x.Id == id && !x.IsDeleted);
-
-            if (room == null)
+            try
             {
-                return NotFound("Oda bulunamadı.");
+                var result = _roomService.UpdateRoom(
+                    Guid.Parse(userId),
+                    id,
+                    updatedRoomDto);
+
+                if (result == null)
+                {
+                    return NotFound("Oda bulunamadı.");
+                }
+
+                return Ok(result);
             }
-
-            var hotel = _context.Hotels
-                .FirstOrDefault(x =>
-                    x.Id == room.HotelId &&
-                    x.UserId == Guid.Parse(userId) &&
-                    !x.IsDeleted);
-
-            if (hotel == null)
+            catch (UnauthorizedAccessException ex)
             {
-                return Unauthorized(
-                    "Bu odayı güncelleme yetkiniz yok.");
+                return Unauthorized(ex.Message);
             }
-
-            _mapper.Map(updatedRoomDto, room);
-
-            _context.SaveChanges();
-
-            var result = _mapper.Map<RoomDto>(room);
-
-            return Ok(result);
         }
 
         // DELETE: api/Room/{id}
@@ -125,31 +95,23 @@ namespace HotelManagementAPI.Controllers
                 return Unauthorized();
             }
 
-            var room = _context.Rooms
-                .FirstOrDefault(x => x.Id == id && !x.IsDeleted);
-
-            if (room == null)
+            try
             {
-                return NotFound("Oda bulunamadı.");
+                var result = _roomService.DeleteRoom(
+                    Guid.Parse(userId),
+                    id);
+
+                if (!result)
+                {
+                    return NotFound("Oda bulunamadı.");
+                }
+
+                return Ok("Oda başarıyla silindi.");
             }
-
-            var hotel = _context.Hotels
-                .FirstOrDefault(x =>
-                    x.Id == room.HotelId &&
-                    x.UserId == Guid.Parse(userId) &&
-                    !x.IsDeleted);
-
-            if (hotel == null)
+            catch (UnauthorizedAccessException ex)
             {
-                return Unauthorized(
-                    "Bu odayı silme yetkiniz yok.");
+                return Unauthorized(ex.Message);
             }
-
-            room.IsDeleted = true;
-
-            _context.SaveChanges();
-
-            return Ok("Oda başarıyla silindi.");
         }
     }
 }

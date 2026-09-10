@@ -1,0 +1,62 @@
+{
+  "USER_EMAIL_EXISTS": {
+    "code": "USER_001",
+    "message": "Bu e-posta adresi zaten kayıtlı."
+  },
+  "INVALID_LOGIN": {
+    "code": "USER_002",
+    "message": "E-posta veya şifre hatalı."
+  },
+  "USER_NOT_FOUND": {
+    "code": "USER_003",
+    "message": "Kullanıcı bulunamadı."
+  },
+  "HOTEL_UPDATE_UNAUTHORIZED": {
+    "code": "HOTEL_001",
+    "message": "Bu oteli güncelleme yetkiniz yok."
+  },
+  "HOTEL_DELETE_UNAUTHORIZED": {
+    "code": "HOTEL_002",
+    "message": "Bu oteli silme yetkiniz yok."
+  },
+  "ROOM_UPDATE_UNAUTHORIZED": {
+    "code": "ROOM_001",
+    "message": "Bu odayı güncelleme yetkiniz yok."
+  },
+  "ROOM_DELETE_UNAUTHORIZED": {
+    "code": "ROOM_002",
+    "message": "Bu odayı silme yetkiniz yok."
+  },
+  "RESERVATION_INVALID_DATES": {
+    "code": "RESERVATION_001",
+    "message": "Çıkış tarihi giriş tarihinden sonra olmalıdır."
+  },
+  "RESERVATION_PAST_DATE": {
+    "code": "RESERVATION_002",
+    "message": "Geçmiş bir tarih için rezervasyon yapılamaz."
+  },
+  "RESERVATION_CONFLICT": {
+    "code": "RESERVATION_003",
+    "message": "Bu oda seçilen tarihlerde zaten rezerve edilmiş."
+  },
+  "RESERVATION_PAID_UPDATE": {
+    "code": "RESERVATION_004",
+    "message": "Ödeme yapılmış bir rezervasyon güncellenemez."
+  },
+  "RESERVATION_ALREADY_CANCELLED": {
+    "code": "RESERVATION_005",
+    "message": "Bu rezervasyon zaten iptal edilmiş."
+  },
+  "PAYMENT_CANCELLED_RESERVATION": {
+    "code": "PAYMENT_001",
+    "message": "İptal edilmiş rezervasyon için ödeme yapılamaz."
+  },
+  "PAYMENT_ALREADY_PAID": {
+    "code": "PAYMENT_002",
+    "message": "Bu rezervasyonun ödemesi zaten yapılmış."
+  },
+  "PAYMENT_INSUFFICIENT_BALANCE": {
+    "code": "PAYMENT_003",
+    "message": "Yetersiz bakiye."
+  }
+}

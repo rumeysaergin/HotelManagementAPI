@@ -1,7 +1,5 @@
-﻿using AutoMapper;
-using HotelManagementAPI.Data;
-using HotelManagementAPI.Entities;
-using HotelManagementAPI.Models.DTOs;
+﻿using HotelManagementAPI.Application.DTOs;
+using HotelManagementAPI.Application.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
@@ -13,122 +11,63 @@ namespace HotelManagementAPI.Controllers
     [Authorize]
     public class PaymentController : ControllerBase
     {
-        private readonly HotelManagementDbContext _context;
-        private readonly IMapper _mapper;
+        private readonly IPaymentService _paymentService;
 
         public PaymentController(
-            HotelManagementDbContext context,
-            IMapper mapper)
+            IPaymentService paymentService)
         {
-            _context = context;
-            _mapper = mapper;
+            _paymentService = paymentService;
         }
 
         [HttpPost("{reservationId}")]
         public IActionResult MakePayment(Guid reservationId)
         {
-            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var userId =
+                User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
             if (userId == null)
             {
                 return Unauthorized();
             }
 
-            var user = _context.Users
-                .FirstOrDefault(x =>
-                    x.Id == Guid.Parse(userId) &&
-                    !x.IsDeleted);
-
-            if (user == null)
+            try
             {
-                return NotFound("Kullanıcı bulunamadı.");
+                var result =
+                    _paymentService.MakePayment(
+                        Guid.Parse(userId),
+                        reservationId);
+
+                if (result == null)
+                {
+                    return NotFound(
+                        "Rezervasyon bulunamadı.");
+                }
+
+                return Ok(result);
             }
-
-            var reservation = _context.Reservations
-                .FirstOrDefault(x =>
-                    x.Id == reservationId &&
-                    x.UserId == Guid.Parse(userId) &&
-                    !x.IsDeleted);
-
-            if (reservation == null)
+            catch (InvalidOperationException ex)
             {
-                return NotFound("Rezervasyon bulunamadı.");
+                return BadRequest(ex.Message);
             }
-
-            if (reservation.Status == "Cancelled")
-            {
-                return BadRequest(
-                    "İptal edilmiş rezervasyon için ödeme yapılamaz.");
-            }
-
-            var existingPayment = _context.Payments
-                .FirstOrDefault(x =>
-                    x.ReservationId == reservationId &&
-                    x.PaymentType == "Payment" &&
-                    x.Status == "Completed" &&
-                    !x.IsDeleted);
-
-            if (existingPayment != null)
-            {
-                return BadRequest(
-                    "Bu rezervasyonun ödemesi zaten yapılmış.");
-            }
-
-            if (user.Balance < reservation.TotalPrice)
-            {
-                return BadRequest(
-                    "Yetersiz bakiye.");
-            }
-
-            user.Balance -= reservation.TotalPrice;
-
-            var payment = new Payment
-            {
-                Id = Guid.NewGuid(),
-                ReservationId = reservation.Id,
-                Amount = reservation.TotalPrice,
-                PaymentType = "Payment",
-                Status = "Completed",
-                TransactionDate = DateTime.UtcNow,
-                IsDeleted = false
-            };
-
-            _context.Payments.Add(payment);
-            _context.SaveChanges();
-
-            var paymentDto = _mapper.Map<PaymentDto>(payment);
-
-            return Ok(new
-            {
-                message = "Ödeme başarıyla gerçekleştirildi.",
-                payment = paymentDto,
-                remainingBalance = user.Balance
-            });
         }
 
         [HttpGet]
-        public IActionResult GetPayments()
+        public IActionResult GetPayments(Guid? hotelId)
         {
-            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var userId =
+                User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
             if (userId == null)
             {
                 return Unauthorized();
             }
 
-            var payments = _context.Payments
-                .Where(x =>
-                    !x.IsDeleted &&
-                    _context.Reservations.Any(r =>
-                        r.Id == x.ReservationId &&
-                        r.UserId == Guid.Parse(userId) &&
-                        !r.IsDeleted))
-                .ToList();
+            var payments =
+                _paymentService.GetPayments(
+                    Guid.Parse(userId),
+                    hotelId);
 
-            var paymentDtos =
-                _mapper.Map<List<PaymentDto>>(payments);
-
-            return Ok(paymentDtos);
+            return Ok(payments);
         }
     }
 }

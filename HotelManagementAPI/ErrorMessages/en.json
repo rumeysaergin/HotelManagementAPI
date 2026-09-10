@@ -1,0 +1,62 @@
+{
+  "USER_EMAIL_EXISTS": {
+    "code": "USER_001",
+    "message": "This email address is already registered."
+  },
+  "INVALID_LOGIN": {
+    "code": "USER_002",
+    "message": "Invalid email or password."
+  },
+  "USER_NOT_FOUND": {
+    "code": "USER_003",
+    "message": "User not found."
+  },
+  "HOTEL_UPDATE_UNAUTHORIZED": {
+    "code": "HOTEL_001",
+    "message": "You are not authorized to update this hotel."
+  },
+  "HOTEL_DELETE_UNAUTHORIZED": {
+    "code": "HOTEL_002",
+    "message": "You are not authorized to delete this hotel."
+  },
+  "ROOM_UPDATE_UNAUTHORIZED": {
+    "code": "ROOM_001",
+    "message": "You are not authorized to update this room."
+  },
+  "ROOM_DELETE_UNAUTHORIZED": {
+    "code": "ROOM_002",
+    "message": "You are not authorized to delete this room."
+  },
+  "RESERVATION_INVALID_DATES": {
+    "code": "RESERVATION_001",
+    "message": "The check-out date must be after the check-in date."
+  },
+  "RESERVATION_PAST_DATE": {
+    "code": "RESERVATION_002",
+    "message": "A reservation cannot be made for a past date."
+  },
+  "RESERVATION_CONFLICT": {
+    "code": "RESERVATION_003",
+    "message": "This room is already reserved for the selected dates."
+  },
+  "RESERVATION_PAID_UPDATE": {
+    "code": "RESERVATION_004",
+    "message": "A reservation with a completed payment cannot be updated."
+  },
+  "RESERVATION_ALREADY_CANCELLED": {
+    "code": "RESERVATION_005",
+    "message": "This reservation has already been cancelled."
+  },
+  "PAYMENT_CANCELLED_RESERVATION": {
+    "code": "PAYMENT_001",
+    "message": "Payment cannot be made for a cancelled reservation."
+  },
+  "PAYMENT_ALREADY_PAID": {
+    "code": "PAYMENT_002",
+    "message": "This reservation has already been paid."
+  },
+  "PAYMENT_INSUFFICIENT_BALANCE": {
+    "code": "PAYMENT_003",
+    "message": "Insufficient balance."
+  }
+}

@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
-using HotelManagementAPI.Domain.Entities;
 using HotelManagementAPI.Application.DTOs;
+using HotelManagementAPI.Domain.Entities;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace HotelManagementAPI.Application.Mapping
 {
@@ -21,7 +22,6 @@ namespace HotelManagementAPI.Application.Mapping
             CreateMap<RoomDto, Room>();
 
             CreateMap<User, UserDto>();
-            CreateMap<UserDto, User>();
         }
     }
 }

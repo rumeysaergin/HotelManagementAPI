@@ -1,5 +1,8 @@
-using HotelManagementAPI.Data;
-using HotelManagementAPI.Mappings;
+using HotelManagementAPI.Infrastructure.Data;
+using HotelManagementAPI.Application.Mapping;
+using HotelManagementAPI.Application.Services;
+using HotelManagementAPI.Application.Repositories;
+using HotelManagementAPI.Infrastructure.Repositories;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -9,7 +12,6 @@ using Microsoft.OpenApi;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Serilog yapılandırması
 Log.Logger = new LoggerConfiguration()
     .WriteTo.Console()
     .WriteTo.File(
@@ -19,13 +21,34 @@ Log.Logger = new LoggerConfiguration()
 
 builder.Host.UseSerilog();
 
-// Entity Framework Core ve SQL Server bağlantısı
 builder.Services.AddDbContext<HotelManagementDbContext>(options =>
     options.UseSqlServer(
         builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// AutoMapper
-builder.Services.AddAutoMapper(typeof(MappingProfile));
+builder.Services.AddAutoMapper(cfg =>
+{
+    cfg.AddProfile<MappingProfile>();
+});
+
+// Hotel Service ve Repository
+builder.Services.AddScoped<IHotelService, HotelService>();
+builder.Services.AddScoped<IHotelRepository, HotelRepository>();
+
+// Room Service ve Repository
+builder.Services.AddScoped<IRoomService, RoomService>();
+builder.Services.AddScoped<IRoomRepository, RoomRepository>();
+
+// Reservation Service ve Repository
+builder.Services.AddScoped<IReservationService, ReservationService>();
+builder.Services.AddScoped<IReservationRepository, ReservationRepository>();
+
+// Payment Service ve Repository
+builder.Services.AddScoped<IPaymentService, PaymentService>();
+builder.Services.AddScoped<IPaymentRepository, PaymentRepository>();
+
+// User Service ve Repository
+builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<IUserRepository, UserRepository>();
 
 // JWT Authentication
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -50,9 +73,13 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     });
 
 builder.Services.AddAuthorization();
+
+builder.Services.AddHttpContextAccessor();
 builder.Services.AddControllers();
+
 builder.Services.AddOpenApi();
 
+// Swagger
 builder.Services.AddSwaggerGen(options =>
 {
     options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
@@ -68,9 +95,33 @@ builder.Services.AddSwaggerGen(options =>
     options.AddSecurityRequirement(document =>
         new OpenApiSecurityRequirement
         {
-            [new OpenApiSecuritySchemeReference("Bearer", document)]
+            [new OpenApiSecuritySchemeReference(
+                "Bearer",
+                document)]
                 = new List<string>()
         });
+});
+
+// Error Messages
+var trErrorMessagePath = Path.Combine(
+    builder.Environment.ContentRootPath,
+    "ErrorMessages",
+    "tr.json");
+
+var enErrorMessagePath = Path.Combine(
+    builder.Environment.ContentRootPath,
+    "ErrorMessages",
+    "en.json");
+
+builder.Services.AddSingleton<ErrorMessageService>(serviceProvider =>
+{
+    var httpContextAccessor =
+        serviceProvider.GetRequiredService<IHttpContextAccessor>();
+
+    return new ErrorMessageService(
+        trErrorMessagePath,
+        enErrorMessagePath,
+        httpContextAccessor);
 });
 
 var app = builder.Build();
