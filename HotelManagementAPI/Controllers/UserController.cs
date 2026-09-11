@@ -1,6 +1,5 @@
 ﻿using HotelManagementAPI.Application.DTOs;
 using HotelManagementAPI.Application.Services;
-using HotelManagementAPI.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;

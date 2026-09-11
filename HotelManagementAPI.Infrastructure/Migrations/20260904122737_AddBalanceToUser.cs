@@ -2,7 +2,7 @@
 
 #nullable disable
 
-namespace HotelManagementAPI.Migrations
+namespace HotelManagementAPI.Infrastructure.Migrations
 {
     /// <inheritdoc />
     public partial class AddBalanceToUser : Migration
